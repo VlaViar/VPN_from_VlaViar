@@ -51,8 +51,23 @@ else
     echo -e "${GREEN}✓ Sudo has already been installed.${NC}"
 fi
 
+# Input all necessary values
+echo -e "${YELLOW}Enter the configurable parameters..."
+echo ""
+read -p "Port: " SSH_PORT
+read -s -p "New password to login to the panel: " PASS_PAN ; echo ""
+[[ -z "$PASS_PAN" || "$PASS_PAN" == "admin" ]] && { echo -e "${RED}❌ Invalid password.${NC}"; exit 1; }
+read -p "New port for connect to panel (default: 2053): " PORT_PAN
+[[ -z "$PORT_PAN" || "$PORT_PAN" == "2053" ]] && { echo -e "${RED}❌ Invalid port.${NC}"; exit 1; }
+read -p "Panel path suffix (default: /panel/): " PATH_PAN
+[[ -z "$PATH_PAN" ]] && { echo -e "${RED}❌ Invalid path.${NC}"; exit 1; }
+read -p "Subscription port (default: 2096): " PORT_SUB
+[[ -z "$PORT_SUB" || "$PORT_PAN" == "2096" ]] && { echo -e "${RED}❌ Invalid port.${NC}"; exit 1; }
+read -p "Subscription path suffix (dafault: /sub/): " PATH_SUB
+[[ -z "$PATH_SUB" ]] && { echo -e "${RED}❌ Invalid path.${NC}"; exit 1; }
+
 # Create user
-echo -e "${BLUE}[1/11] Creating user...${NC}"
+echo -e "${BLUE}[1/12] Creating user...${NC}"
 read -p "Username (not root): " USER
 [[ -z "$USER" || "$USER" == "root" ]] && { echo -e "${RED}❌ Invalid username.${NC}"; exit 1; }
 id "$USER" &>/dev/null || adduser --disabled-password --gecos "" "$USER"
@@ -63,7 +78,7 @@ echo -e "${RED}❌ User creation error.${NC}" && exit 1
 fi
 
 # Adding a user to the sudo group
-echo -e "${BLUE}[2/11] Adding a user to the sudo group...${NC}"
+echo -e "${BLUE}[2/12] Adding a user to the sudo group...${NC}"
 mkdir -p /etc/sudoers.d
 echo "$USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/"$USER"
 chmod 440 /etc/sudoers.d/"$USER"
@@ -78,12 +93,12 @@ echo -e "${GREEN}✓ Sudo configured successfully.${NC}"
 echo -e "${YELLOW}! Run on your local machine: 'ssh-keygen -t ed25519 -C \"vpn_key\" -f ~/.ssh/vpn-key'${NC}"
 read -p "Ready? (y/n): " answer
 [[ "$answer" != "y" ]] && exit 1
-echo -e "${YELLOW}! Paste your public SSH key:${NC}"
-read -s -p "Key: " KEY
-[[ ! "$KEY" =~ ^ssh-(rsa|ed25519|ecdsa) ]] && { echo -e "${RED}Invalid key format${NC}"; exit 1; }
-echo -e "${BLUE}[3/11] Adding SSH key...${NC}"
+echo -e "${YELLOW}Paste your public SSH key:${NC}"
+read -s -p "Key: " SSH_KEY
+[[ ! "$SSH_KEY" =~ ^ssh-(rsa|ed25519|ecdsa) ]] && { echo -e "${RED}Invalid key format${NC}"; exit 1; }
+echo -e "${BLUE}[3/12] Adding SSH key...${NC}"
 mkdir -p /home/"$USER"/.ssh
-echo "$KEY" > /home/"$USER"/.ssh/authorized_keys
+echo "$SSH_KEY" > /home/"$USER"/.ssh/authorized_keys
 chmod 700 /home/"$USER"/.ssh
 chmod 600 /home/"$USER"/.ssh/authorized_keys
 chown -R "$USER":"$USER" /home/"$USER"/.ssh
@@ -95,8 +110,7 @@ fi
 
 # SSH configuration
 echo -e "${YELLOW}! Enter a free SSH port:${NC}"
-read -p "Port: " SSH_PORT
-echo -e "${BLUE}[4/11] Configuring SSH...${NC}"
+echo -e "${BLUE}[4/12] Configuring SSH...${NC}"
 if ! [[ "$SSH_PORT" =~ ^[0-9]+$ ]] || (( SSH_PORT < 1024 || SSH_PORT > 65535 || SSH_PORT == 22 )); then
     echo -e "${RED}❌ Invalid port. Must be 1024-65535 and not 22.${NC}"
     exit 1
@@ -109,16 +123,16 @@ grep -q "^Port $SSH_PORT" /etc/ssh/sshd_config || echo "Port $SSH_PORT" >> /etc/
 echo -e "${GREEN}✓ SSH configured.${NC}"
 
 # Installing the necessary packages
-echo -e "${BLUE}[5/11] Installing the necessary packages...${NC}"
-apt update -q && apt upgrade -y
-apt install -y -q ufw fail2ban iptables curl openssl ca-certificates gnupg jq
+echo -e "${BLUE}[5/12] Installing the necessary packages...${NC}"
+apt update -qq && apt upgrade -y
+apt install -y -qq ufw fail2ban iptables curl openssl ca-certificates gnupg
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL "https://download.docker.com/linux/$OS_NAME/gpg" | gpg --dearmor -o /etc/apt/keyrings/docker.gpg -q
 chmod a+r /etc/apt/keyrings/docker.gpg
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$OS_NAME $CODENAME stable" | \
   tee /etc/apt/sources.list.d/docker.list > /dev/null
-apt update -q
-apt install -y -q docker-ce docker-ce-cli containerd.io docker-compose-plugin
+apt update -qq
+apt install -y -qq docker-ce docker-ce-cli containerd.io docker-compose-plugin
 if ! command -v docker &>/dev/null || ! docker compose version &>/dev/null; then
     echo -e "${RED}❌ Docker compose not available. Install manually docker-compose-plugin.${NC}"
     exit 1
@@ -131,7 +145,7 @@ else
 fi
 
 # Install 3X-UI
-echo -e "${BLUE}[6/11] Downloading and starting 3X-UI...${NC}"
+echo -e "${BLUE}[6/12] Downloading and starting 3X-UI...${NC}"
 INSTALL_DIR="/home/$USER/3x-ui"
 DATA_DIR="$INSTALL_DIR/db"
 CERT_DIR="$INSTALL_DIR/cert"
@@ -163,7 +177,7 @@ else
 fi
 
 # Configure ufw
-echo -e "${BLUE}[7/11] Configuring ufw...${NC}"
+echo -e "${BLUE}[7/12] Configuring ufw...${NC}"
 ufw default deny incoming
 ufw default allow outgoing
 ufw allow "$SSH_PORT"/tcp comment "SSH"
@@ -197,7 +211,7 @@ systemctl restart fail2ban
 echo -e "${GREEN}✓ UFW and Fail2ban configured${NC}"
 
 # Download RealiTLScanner
-echo -e "${BLUE}[8/11] Downloading RealiTLScanner...${NC}"
+echo -e "${BLUE}[8/12] Downloading RealiTLScanner...${NC}"
 mkdir -p /usr/local/bin
 if curl -fsSL -o /usr/local/bin/realitlscanner https://github.com/XTLS/RealiTLScanner/releases/download/v0.2.1/RealiTLScanner-linux-64; then
     chmod +x /usr/local/bin/realitlscanner
@@ -211,7 +225,7 @@ else
 fi
 
 # Creating and adding a certificate for the 3X-UI panel
-echo -e "${BLUE}[9/11] Creating and adding a certificate for the 3X-UI panel...${NC}"
+echo -e "${BLUE}[9/12] Creating and adding a certificate for the 3X-UI panel...${NC}"
 sudo mkdir -p $CERT_DIR
 IP=$(curl -s4 ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
 sudo openssl req -x509 -newkey rsa:4096 -keyout $CERT_DIR/panel.key \
@@ -225,15 +239,7 @@ else
 fi
 
 # Configuring 3X-UI panel
-echo -e "${BLUE}[10/11] Configuring 3X-UI panel...${NC}"
-read -s -p "New password to login to the panel: " PASS_PAN
-echo ""
-read -p "New port for connect to panel: " PORT_PAN
-read -p "Panel path suffix (default: /panel/): " PATH_PAN
-read -p "Subscription port (default: 2096): " PORT_SUB
-read -p "Subscription path suffix (default: /sub/): " PATH_SUB
-[[ -z "$PASS_PAN" || "$PASS_PAN" == "admin" ]] && { echo -e "${RED}❌ Invalid password.${NC}"; exit 1; }
-[[ -z "$PORT_PAN" || "$PORT_PAN" == "2053" ]] && { echo -e "${RED}❌ Invalid port.${NC}"; exit 1; }
+echo -e "${BLUE}[10/12] Configuring 3X-UI panel...${NC}"
 COOKIE=/tmp/3x-ui_cookie.txt
 echo -e "Path to cookie file: $COOKIE"
 curl -k -s -c $COOKIE -X POST \
@@ -326,7 +332,7 @@ rm -f $COOKIE
 echo -e "${GREEN}✓ Password and port for access to panel successfully edited.${NC}"
 
 # Checking and restarting SSH
-echo -e "${BLUE}[11/11] Checking and restarting SSH...${NC}"
+echo -e "${BLUE}[11/12] Checking and restarting SSH...${NC}"
 if ! sshd -t 2>/dev/null; then
     echo -e "${RED}❌ SSH config syntax error.${NC}"
     exit 1
@@ -348,10 +354,10 @@ echo -e "${GREEN}✓ SSH key configured correctly.${NC}"
 sleep 2
 echo ""
 echo -e "${YELLOW}SSH daemon will be restarted now.${NC}"
-echo -e "${YELLOW}DO NOT CLOSE THIS SESSION until you verify connection!${NC}"
+echo -e "${YELLOW}Do not close this SSH session until a new successful connection is made in another window!${NC}"
 echo ""
-read -p "Confirm that you will keep this session open and test the SSH connection in a new window (y/n)?:" confirm_final
-[[ "$confirm_final" != "y" ]] && { echo "SSH restart cancelled by user"; exit 0; }
+read -p "Restart SSH? (y/n)?:" confirm_final
+[[ "$confirm_final" == "y" ]] && { echo "SSH restart cancelled by user"; exit 0; }
 echo -e "${BLUE}Restarting SSH daemon...${NC}"
 if systemctl restart sshd 2>/dev/null; then
     echo -e "${GREEN}✓ SSH restarted successfully.${NC}"
@@ -368,19 +374,16 @@ else
     exit 1
 fi
 
+# Removing not used packages
+echo -e "${BLUE}[12/12] Removing not used packages...${NC}"
+apt autoremove -y -q
+apt autoclean -y -q
+echo -e "${GREEN}✓ Cleanup completed.${NC}"
+
 echo ""
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}   The script completed successfully!   ${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
-echo -e "${YELLOW}The following steps to follow are:${NC}"
-echo -e "1. Copy the command below and paste it into the terminal on your device to connect via ssh with the new settings to this server:"
-echo -e "   ${BLUE}ssh -p $SSH_PORT $USER@$IP -i ~/.ssh/vpn-key${NC}"
-echo -e "2. In panel settings change:"
-echo -e "   •${BLUE} Panel port: from 2053 to any port in range 10000-65535${NC}"
-echo -e "   •${BLUE} Subscription port: from 2096 to any port in range 10000-65535${NC}"
-echo -e "   •${BLUE} Panel path: from / to custom path${NC}"
-echo -e "   •${BLUE} 127.0.0.1 (block external access)${NC}"
-echo -e "   •${BLUE} Change path to the panel's key: $CERT_DIR/panel.key${NC}"
-echo -e "   •${BLUE} Change path to the panel's certificate: $CERT_DIR/panel.crt${NC}"
-echo -e "   •${BLUE} Change default login/password to strong custom credentials${NC}"
+echo -e "Copy the command below and paste it into the terminal on your device to connect via ssh with the new settings to this server:"
+echo -e "${BLUE}ssh -p $SSH_PORT $USER@$IP -i ~/.ssh/vpn-key${NC}"
