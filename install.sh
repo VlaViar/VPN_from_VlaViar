@@ -27,7 +27,7 @@ echo -e "${GREEN}✓ OS: ${OS_NAME^} ${CODENAME}${NC}"
 
 # Checking (and installing) the sudo package
 if ! command -v sudo &> /dev/null; then
-    echo -e "${YELLOW}Sudo is not installed.${NC}"
+    echo -e "${RED}❌ Sudo is not installed.${NC}"
     read -p "Do you want to install sudo? (y/n): " INSTALL_SUDO
     if [[ "$INSTALL_SUDO" == "y" ]]; then
         echo -e "${BLUE}Installing sudo...${NC}"
@@ -52,9 +52,8 @@ else
 fi
 
 # Input all necessary values
-echo -e "${YELLOW}Enter the configurable parameters..."
-echo ""
-read -p "Port: " SSH_PORT
+echo -e "${YELLOW}Enter the configurable parameters...${NC}"
+read -p "SSH port: " SSH_PORT
 read -s -p "New password to login to the panel: " PASS_PAN ; echo ""
 [[ -z "$PASS_PAN" || "$PASS_PAN" == "admin" ]] && { echo -e "${RED}❌ Invalid password.${NC}"; exit 1; }
 read -p "New port for connect to panel (default: 2053): " PORT_PAN
@@ -62,7 +61,7 @@ read -p "New port for connect to panel (default: 2053): " PORT_PAN
 read -p "Panel path suffix (default: /panel/): " PATH_PAN
 [[ -z "$PATH_PAN" ]] && { echo -e "${RED}❌ Invalid path.${NC}"; exit 1; }
 read -p "Subscription port (default: 2096): " PORT_SUB
-[[ -z "$PORT_SUB" || "$PORT_PAN" == "2096" ]] && { echo -e "${RED}❌ Invalid port.${NC}"; exit 1; }
+[[ -z "$PORT_SUB" || "$PORT_SUB" == "2096" ]] && { echo -e "${RED}❌ Invalid port.${NC}"; exit 1; }
 read -p "Subscription path suffix (dafault: /sub/): " PATH_SUB
 [[ -z "$PATH_SUB" ]] && { echo -e "${RED}❌ Invalid path.${NC}"; exit 1; }
 
@@ -90,7 +89,7 @@ fi
 echo -e "${GREEN}✓ Sudo configured successfully.${NC}"
 
 # Adding SSH key
-echo -e "${YELLOW}! Run on your local machine: 'ssh-keygen -t ed25519 -C \"vpn_key\" -f ~/.ssh/vpn-key'${NC}"
+echo -e "${YELLOW}Run on your local machine: 'ssh-keygen -t ed25519 -C \"vpn_key\" -f ~/.ssh/vpn-key'${NC}"
 read -p "Ready? (y/n): " answer
 [[ "$answer" != "y" ]] && exit 1
 echo -e "${YELLOW}Paste your public SSH key:${NC}"
@@ -109,7 +108,6 @@ echo -e "${RED}❌ SSH key creation error.${NC}" && exit 1
 fi
 
 # SSH configuration
-echo -e "${YELLOW}! Enter a free SSH port:${NC}"
 echo -e "${BLUE}[4/12] Configuring SSH...${NC}"
 if ! [[ "$SSH_PORT" =~ ^[0-9]+$ ]] || (( SSH_PORT < 1024 || SSH_PORT > 65535 || SSH_PORT == 22 )); then
     echo -e "${RED}❌ Invalid port. Must be 1024-65535 and not 22.${NC}"
@@ -221,7 +219,9 @@ if curl -fsSL -o /usr/local/bin/realitlscanner https://github.com/XTLS/RealiTLSc
         echo -e "${RED}❌ The binary was not found.${NC}"
     fi
 else
-    echo -e "${YELLOW}❌ Failed to download RealiTLScanner. Skipping...${NC}"
+    echo -e "${RED}❌ Failed to download RealiTLScanner.${NC}"
+    sleep 1
+    echo -e "${YELLOW}Skipping...${NC}"
 fi
 
 # Creating and adding a certificate for the 3X-UI panel
@@ -255,7 +255,7 @@ curl -k -s -b /tmp/3x-ui_cookie.txt -X POST \
     \"webPort\":${PORT_PAN},
     \"webCertFile\":\"/root/cert/panel.crt\",
     \"webKeyFile\":\"/root/cert/panel.key\",
-    \"webBasePath\":\"/panel-${PATH_PAN}/\",
+    \"webBasePath\":\"/${PATH_PAN}/\",
     \"sessionMaxAge\":360,
     \"pageSize\":25,
     \"expireDiff\":0,
@@ -285,7 +285,7 @@ curl -k -s -b /tmp/3x-ui_cookie.txt -X POST \
     \"subRoutingRules\":\"\",
     \"subListen\":\"\",
     \"subPort\":${PORT_SUB},
-    \"subPath\":\"/sub-${PATH_SUB}/\",
+    \"subPath\":\"/${PATH_SUB}/\",
     \"subDomain\":\"\",
     \"subCertFile\":\"\",
     \"subKeyFile\":\"\",
@@ -326,8 +326,10 @@ curl -k -s -b $COOKIE -X POST \
   "http://127.0.0.1:2053/panel/setting/updateUser" \
   -H "Content-Type: application/json" \
   -d "{\"oldUsername\":\"admin\",\"oldPassword\":\"admin\",\"newUsername\":\"admin\",\"newPassword\":\"${PASS_PAN}\"}"
-curl -k -s -b $COOKIE -X POST "http://127.0.0.1:2053/panel/setting/restartPanel"
-ufw allow $PORT_PAN/tcp comment '3X-UI' && ufw delete allow 2053/tcp && ufw reload
+curl -k -s -b $COOKIE -X POST "http://127.0.0.1:2053/panel/setting/restartPanel" ; echo ""
+ufw allow $PORT_PAN/tcp comment '3X-UI(panel)' && ufw delete allow 2053/tcp
+ufw allow $PORT_SUB/tcp comment '3X-UI(sub)' && ufw delete allow 2096/tcp
+ufw reload
 rm -f $COOKIE
 echo -e "${GREEN}✓ Password and port for access to panel successfully edited.${NC}"
 
@@ -345,7 +347,7 @@ if ss -tulpn 2>/dev/null | grep -q ":$SSH_PORT.*LISTEN" && ! ss -tulpn 2>/dev/nu
 fi
 echo -e "${GREEN}✓ Port $SSH_PORT is available for SSH.${NC}"
 if [[ $(stat -c "%a" /home/"$USER"/.ssh) != "700" ]] || [[ $(stat -c "%a" /home/"$USER"/.ssh/authorized_keys) != "600" ]]; then
-    echo -e "${YELLOW}! Incorrect permissions on .ssh or authorized_keys — fixing.${NC}"
+    echo -e "${YELLOW}Incorrect permissions on .ssh or authorized_keys — fixing.${NC}"
     chmod 700 /home/"$USER"/.ssh
     chmod 600 /home/"$USER"/.ssh/authorized_keys
     chown -R "$USER":"$USER" /home/"$USER"/.ssh
@@ -357,7 +359,7 @@ echo -e "${YELLOW}SSH daemon will be restarted now.${NC}"
 echo -e "${YELLOW}Do not close this SSH session until a new successful connection is made in another window!${NC}"
 echo ""
 read -p "Restart SSH? (y/n)?:" confirm_final
-[[ "$confirm_final" == "y" ]] && { echo "SSH restart cancelled by user"; exit 0; }
+[[ "$confirm_final" != "y" ]] && { echo "SSH restart cancelled by user"; exit 0; }
 echo -e "${BLUE}Restarting SSH daemon...${NC}"
 if systemctl restart sshd 2>/dev/null; then
     echo -e "${GREEN}✓ SSH restarted successfully.${NC}"
@@ -385,5 +387,8 @@ echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}   The script completed successfully!   ${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
-echo -e "Copy the command below and paste it into the terminal on your device to connect via ssh with the new settings to this server:"
+echo "Enter this link in search bar browser for connect to panel:"
+echo -e "${BLUE}https://$IP:$PORT_PAN/$PATH_PAN/${NC}"
+echo ""
+echo "Copy the command below and paste it into the terminal on your device to connect via SSH with the new settings to this server:"
 echo -e "${BLUE}ssh -p $SSH_PORT $USER@$IP -i ~/.ssh/vpn-key${NC}"
