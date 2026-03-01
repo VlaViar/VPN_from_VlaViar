@@ -123,7 +123,7 @@ echo -e "${GREEN}✓ SSH configured.${NC}"
 # Installing the necessary packages
 echo -e "${BLUE}[5/12] Installing the necessary packages...${NC}"
 apt update -qq && apt upgrade -y
-apt install -y -qq ufw fail2ban iptables curl openssl ca-certificates gnupg
+apt install -y -qq bash-completion tree net-tools ufw fail2ban iptables curl openssl ca-certificates gnupg git sqlite3
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL "https://download.docker.com/linux/$OS_NAME/gpg" | gpg --dearmor -o /etc/apt/keyrings/docker.gpg -q
 chmod a+r /etc/apt/keyrings/docker.gpg
