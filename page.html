@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Пошаговая инструкция по установке и настройке безопасного VPN-сервиса. Настройка сервера, клиентов и протоколов.">
+    <meta name="author" content="Владислав">
+
+    <meta property="og:title" content="Инструкция по установке VPN">
+    <meta property="og:description" content="Полный гайд по развертыванию личного VPN-сервера.">
+    <meta property="og:type" content="website">
+
+    <title> VlaVPN | Инструкция </title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-dark: #0B0F19;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --primary-blue: #2563EB;
+            --primary-hover: #1D4ED8;
+            --neon-accent: #00F0FF;
+            --neon-purple: #BD00FF;
+            --text-main: #F1F5F9;
+            --text-muted: #94A3B8;
+            --border-color: rgba(255, 255, 255, 0.1);
+
+            --container-width: 1200px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --transition: all 0.3s ease;
+        }
+
+        html {
+            scroll-behavior: auto;
+        }
+        .step-link {
+            color: var(--text-muted);
+            text-decoration: underline;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .step-link:hover {
+            color: var(--primary-blue);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: var(--container-width);
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        a { text-decoration: none; color: inherit; }
+        ul { list-style: none; }
+
+        .header {
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 20, 33, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(20px);
+            z-index: -1;
+        }
+
+        .nav-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 1.6rem;
+            background: linear-gradient(90deg, var(--neon-accent), var(--primary-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .btn-cta {
+            background-color: var(--primary-blue);
+            color: white;
+            padding: 10px 24px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            transition: var(--transition);
+            border: 1px solid transparent;
+        }
+
+        .btn-cta:hover {
+            background-color: var(--primary-hover);
+            box-shadow: 0 0 15px rgba(37, 99, 235, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .hero {
+            padding: 80px 0;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            margin-bottom: 20px;
+            line-height: 1.1;
+        }
+
+        .hero h1 span {
+            color: var(--neon-accent);
+            text-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            max-width: 500px;
+            margin: 0 auto -40px;
+        }
+
+        .guide-section {
+            padding: 60px 0;
+        }
+
+        .step-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            margin-bottom: 30px;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .step-card:hover {
+            border-color: var(--primary-blue);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+
+        .step-header {
+            padding: 24px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .step-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .step-number {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary-blue), var(--neon-purple));
+            border-radius: 50%;
+            font-size: 0.9rem;
+            color: white;
+        }
+
+        .toggle-icon {
+            transition: transform 0.3s ease;
+            color: var(--text-muted);
+        }
+
+        .step-card.active .toggle-icon {
+            transform: rotate(180deg);
+            color: var(--neon-accent);
+        }
+
+        .step-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .step-body {
+            padding: 6px 24px 24px;
+            color: var(--text-muted);
+        }
+
+        .code-block {
+            background: #1E293B;
+            border-radius: var(--radius-md);
+            padding: 20px;
+            margin: 20px 0;
+            position: relative;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+            border: 1px solid var(--border-color);
+            overflow-x: auto;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 4px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: var(--transition);
+        }
+
+        .copy-btn:hover {
+            border-color: var(--neon-accent);
+            color: var(--neon-accent);
+        }
+
+        .screenshot-placeholder {
+            width: 100%;
+            height: 300px;
+            background: linear-gradient(45deg, #1e293b, #0f172a);
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .screenshot-placeholder::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(37,99,235,0.1) 0%, transparent 60%);
+            animation: rotate 10s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .footer {
+            border-top: 1px solid var(--border-color);
+            padding: 40px 0;
+            margin-top: 60px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.5rem; }
+            .step-header { padding: 16px; }
+            .step-body { padding: 0 16px 16px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="container nav-wrapper">
+            <a href="#" class="logo">Vla<span style="color:var(--text-main)">VPN</span></a>
+            <a href="#start" class="btn-cta">В начало</a>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero container" id="start">
+            <h1>Инструкция по установке и настройке сервиса<br><span>VlaVPN</span></h1>
+            <p>Просто следуйте инструкции, и уже через 5 минут вы сможете пользоваться VPN.</p>
+        </section>
+
+        <section class="guide-section container">
+
+            <article class="step-card" id="preparation">
+                <div class="step-header" role="button" tabindex="0" aria-expanded="true" aria-controls="content-1">
+                    <div class="step-title">
+                        <span class="step-number">1</span>
+                        Подготовка
+                    </div>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div id="content-1" class="step-content">
+                    <div class="step-body">
+                        <p>1. Сообщите администратору о желании подключить VPN.</p>
+                        <p>2. Предоставьте вашу личную почту (желательно <strong>Яндекс</strong>).</p>
+                        <p>3. Проверьте почту — вы получите письмо со <strong>ссылкой</strong> на материалы для <strong>подключения</strong>.</p>
+                        <p>4. Перейдите по ссылке и запросите <strong>пароль</strong> у администратора.</p>
+                        <p>5. После получения введите пароль, откройте <strong>файл</strong> и скопируйте <strong>ссылку</strong> из него.</p>
+
+                        <div class="screenshot-placeholder">
+                            [Место для скриншота]
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <article class="step-card">
+                <div class="step-header" role="button" tabindex="0" aria-expanded="true" aria-controls="content-1">
+                    <div class="step-title">
+                        <span class="step-number">2</span>
+                        Скачивание VPN-клиента
+                    </div>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div id="content-1" class="step-content">
+                    <div class="step-body">
+                        <p>1. Откройте <strong>Google Play</strong> или <strong>App Store</strong>.</p>
+                        <p>2. Введите в поиске <strong>v2raytun</strong>.</p>
+                        <p>3. Найдите приложение в списке и скачайте его.</p>
+                        
+                        <div class="screenshot-placeholder">
+                            [Место для скриншота]
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <article class="step-card">
+                <div class="step-header" role="button" tabindex="0" aria-expanded="false" aria-controls="content-2">
+                    <div class="step-title">
+                        <span class="step-number">3</span>
+                        Настройка VPN-клиента
+                    </div>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div id="content-2" class="step-content">
+                    <div class="step-body">
+                        <p>1. Откройте скачанное приложение.</p>
+                        <p>2. В правом верхнем углу нажмите на «<strong>+</strong>».</p>
+                        <p>3. Далее выберите «<strong>Импорт из QR-кода</strong>» или «<strong>Импорт из буфера обмена</strong>».</p>
+                        <p><em>Ссылку и QR-код для импорта можно получить выполнив шаг №1 «<a href="#preparation" class="step-link"><strong>Подготовка</strong></a>».</em></p>
+
+                        <div class="screenshot-placeholder">
+                            [Место для скриншота]
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2026 VPN instruction. Created by VlaViar.</p>
+            <p style="margin-top: 10px; font-size: 0.8rem; opacity: 0.6;">
+                Disclaimer: Используйте VPN ответственно и в соответствии с законодательством вашей страны.
+            </p>
+        </div>
+    </footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const steps = document.querySelectorAll('.step-card');
+    const headers = document.querySelectorAll('.step-header');
+
+    function toggleStep(card) {
+        const isActive = card.classList.contains('active');
+        const content = card.querySelector('.step-content');
+        const header = card.querySelector('.step-header');
+
+        if (isActive) {
+            card.classList.remove('active');
+            if (content) content.style.maxHeight = null;
+            if (header) header.setAttribute('aria-expanded', 'false');
+            return;
+        }
+
+        steps.forEach(step => {
+            step.classList.remove('active');
+            const c = step.querySelector('.step-content');
+            const h = step.querySelector('.step-header');
+            if (c) c.style.maxHeight = null;
+            if (h) h.setAttribute('aria-expanded', 'false');
+        });
+
+        card.classList.add('active');
+        
+        if (content && header) {
+            content.style.maxHeight = 'none';
+            const height = content.scrollHeight;
+            content.style.maxHeight = '0';
+            void content.offsetHeight;
+            content.style.maxHeight = height + 'px';
+            header.setAttribute('aria-expanded', 'true');
+        }
+    }
+
+    headers.forEach(header => {
+        header.addEventListener('click', () => {
+            const card = header.closest('.step-card');
+            toggleStep(card);
+        });
+
+        header.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                header.click();
+            }
+        });
+    });
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            const targetId = this.getAttribute('href').substring(1);
+            const targetCard = document.getElementById(targetId);
+            
+            if (targetCard && targetCard.classList.contains('step-card')) {
+                e.preventDefault();
+                toggleStep(targetCard);
+                
+                setTimeout(() => {
+                    targetCard.scrollIntoView({ 
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }, 150);
+            }
+        });
+    });
+});
+</script>
+</body>
+</html>
