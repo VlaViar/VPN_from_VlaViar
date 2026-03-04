@@ -3,7 +3,6 @@ set -euo pipefail
 
 # Variables for apt
 export DEBIAN_FRONTEND=noninteractive
-export APT_OPTIONS="-o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold"
 
 # Variable to specify version 3X-UI panel
 VERSION_PANEL=v2.8.11
@@ -80,8 +79,8 @@ fi
 if systemctl list-units --all | grep "qemu-guest-agent.service" > /dev/null ; then
     echo -e "${YELLOW}The GA agent was found on the host.${NC}"
     echo -e "${BLUE}Started process configuring GA...${NC}"
-    sudo mkdir -p /etc/qemu
-    sudo tee /etc/qemu/qemu-ga.conf > /dev/null << 'EOF'
+    mkdir -p /etc/qemu
+    tee /etc/qemu/qemu-ga.conf > /dev/null << 'EOF'
 [general]
 block-rpcs = ["guest-file-open","guest-file-read","guest-file-write","guest-file-seek","guest-file-flush","guest-file-close","guest-exec","guest-exec-status","guest-set-user-password","guest-set-time"]
 loglevel = info
@@ -90,8 +89,8 @@ EOF
         echo -e "${RED}✗ Failed to write config.${NC}"
         exit 1
     fi
-    sudo systemctl daemon-reload
-    sudo systemctl restart qemu-guest-agent.service
+    systemctl daemon-reload
+    systemctl restart qemu-guest-agent.service
     sleep 1
     if systemctl status qemu-guest-agent.service | grep -wiq "active"; then
         echo -e "${GREEN}✓ Service successfully configured and restarted.${NC}"
