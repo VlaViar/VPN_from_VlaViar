@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Vars for apt
+# Variables for apt
 export DEBIAN_FRONTEND=noninteractive
 export APT_OPTIONS="-o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold"
+
+# Variable to specify version 3X-UI panel
+VERSION_PANEL=v2.8.11
 
 # Colors
 RED='\033[0;31m'
@@ -249,7 +252,7 @@ cd "$INSTALL_DIR"
 cat > docker-compose.yml <<EOF
 services:
   x-ui:
-    image: ghcr.io/mhsanaei/3x-ui:v2.8.10
+    image: ghcr.io/mhsanaei/3x-ui:$VERSION_PANEL
     container_name: 3x-ui
     restart: unless-stopped
     network_mode: host
@@ -257,7 +260,7 @@ services:
       - $DATA_DIR:/etc/x-ui
       - $CERT_DIR:/root/cert
 EOF
-if ! docker pull ghcr.io/mhsanaei/3x-ui:v2.8.10 -q; then
+if ! docker pull ghcr.io/mhsanaei/3x-ui:$VERSION_PANEL -q; then
     echo -e "${RED}❌ Failed to pull 3X-UI image${NC}"
     exit 1
 fi
