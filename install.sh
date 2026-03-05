@@ -29,7 +29,7 @@ if grep -qi "ID=debian" /etc/os-release; then
     CODENAME_OS=$(awk -F= '/^VERSION_CODENAME=/ {print $2}' /etc/os-release 2>/dev/null)
     [[ -z "$CODENAME_OS" ]] && CODENAME_OS="trixie"
 else
-    echo -e "${RED}❌ Only Debian supported${NC}"
+    echo -e "${RED}❌ Only Debian supported.${NC}"
     exit 1
 fi
 echo -e "${GREEN}✓ OS: ${NAME_OS^} ${CODENAME_OS}${NC}"
@@ -75,27 +75,20 @@ else
     echo -e "${GREEN}✓ Sudo has already been installed.${NC}"
 fi
 
-# Configure GA
-if systemctl list-units --all | grep "qemu-guest-agent.service" > /dev/null ; then
-    echo -e "${YELLOW}The GA agent was found on the host.${NC}"
-    echo -e "${BLUE}Started process configuring GA...${NC}"
-    mkdir -p /etc/qemu
-    tee /etc/qemu/qemu-ga.conf > /dev/null << 'EOF'
-[general]
-block-rpcs = ["guest-file-open","guest-file-read","guest-file-write","guest-file-seek","guest-file-flush","guest-file-close","guest-exec","guest-exec-status","guest-set-user-password","guest-set-time"]
-loglevel = info
-EOF
-    if ! [ $? -eq 0 ]; then
-        echo -e "${RED}✗ Failed to write config.${NC}"
-        exit 1
-    fi
-    systemctl daemon-reload
-    systemctl restart qemu-guest-agent.service
-    sleep 1
-    if systemctl status qemu-guest-agent.service | grep -wiq "active"; then
-        echo -e "${GREEN}✓ Service successfully configured and restarted.${NC}"
+# Check and disable QEMU Guest Agent
+if systemctl list-unit-files --all | grep "qemu-guest-agent.service" >/dev/null; then
+    echo -e "${YELLOW}QEMU Guest Agent is found${NC}"
+    echo -e "${BLUE}Disabling QEMU Guest Agent...${NC}"
+    systemctl stop qemu-guest-agent.service && \
+    systemctl disable qemu-guest-agent.service >/dev/null && \
+    systemctl mask qemu-guest-agent.service >/dev/null && \
+    rm -f /etc/qemu/qemu-ga.conf
+    if systemctl status qemu-guest-agent.service | grep masked >/dev/null && \
+       systemctl is-active qemu-guest-agent.service | grep inactive >/dev/null && \
+       ! pgrep -x "qemu-ga" || true >/dev/null; then
+        echo -e "${GREEN}✓ QEMU Guest Agent is disabled.${NC}"
     else
-        echo -e "${RED}✗ Service failed to start.${NC}"
+        echo -e "${RED}✗ Failed to disable QEMU Guest Agent.${NC}"
         exit 1
     fi
 fi
@@ -169,7 +162,7 @@ sed -i "s/^#*Port .*/Port $PORT_SSH/" /etc/ssh/sshd_config
 sed -i "s/^#*PermitRootLogin .*/PermitRootLogin no/" /etc/ssh/sshd_config
 sed -i "s/^#*PasswordAuthentication .*/PasswordAuthentication no/" /etc/ssh/sshd_config
 grep -q "^Port $PORT_SSH" /etc/ssh/sshd_config || echo "Port $PORT_SSH" >> /etc/ssh/sshd_config
-sshd -t || { echo -e "${RED}❌ SSH config syntax error${NC}"; exit 1; }
+sshd -t || { echo -e "${RED}❌ SSH config syntax error.${NC}"; exit 1; }
 if [[ -d /home/"$NAME_USER"/.ssh ]]; then
     if [[ $(stat -c "%a" /home/"$NAME_USER"/.ssh) != "700" ]]; then
         chmod 700 /home/"$NAME_USER"/.ssh
@@ -192,7 +185,7 @@ apt-get update -q \
 apt-get install -q -y \
     -o Dpkg::Options::=--force-confdef \
     -o Dpkg::Options::=--force-confold \
-    bash-completion vim tree net-tools ufw fail2ban iptables curl openssl ca-certificates gnupg git sqlite3
+    bash-completion vim tree net-tools ufw fail2ban iptables curl openssl ca-certificates gnupg git sqlite3 stress iperf3
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL "https://download.docker.com/linux/$NAME_OS/gpg" | gpg --dearmor -o /etc/apt/keyrings/docker.gpg -q
 chmod a+r /etc/apt/keyrings/docker.gpg
@@ -213,20 +206,20 @@ for i in {1..10}; do
     sleep 1
 done
 if ! systemctl is-active --quiet docker; then
-    echo -e "${RED}❌ Docker launch failed${NC}"
+    echo -e "${RED}❌ Docker launch failed.${NC}"
     exit 1
 fi
 if ! command -v docker &>/dev/null; then
-    echo -e "${RED}❌ Docker installation failed${NC}"
+    echo -e "${RED}❌ Docker installation failed.${NC}"
     exit 1
 fi
 if ! command -v docker compose &>/dev/null; then
-    echo -e "${RED}❌ Docker-compose plugin installation failed${NC}"
+    echo -e "${RED}❌ Docker-compose plugin installation failed.${NC}"
     exit 1
 fi
 usermod -aG docker "$NAME_USER"
 if ! groups "$NAME_USER" | grep -qw docker; then
-    echo -e "${RED}❌ Error adding user \"$NAME_USER\" in docker group${NC}"
+    echo -e "${RED}❌ Error adding user \"$NAME_USER\" in docker group.${NC}"
     exit 1
 fi
 mkdir -p /usr/local/bin
@@ -260,7 +253,7 @@ services:
       - $CERT_DIR:/root/cert
 EOF
 if ! docker pull ghcr.io/mhsanaei/3x-ui:$VERSION_PANEL -q; then
-    echo -e "${RED}❌ Failed to pull 3X-UI image${NC}"
+    echo -e "${RED}❌ Failed to pull 3X-UI image.${NC}"
     exit 1
 fi
 sleep 5
@@ -292,7 +285,7 @@ ufw allow "$PORT_SUB"/tcp comment "3X-UI(sub)"
 ufw --force enable
 sleep 1
 if ! ufw status | grep -q "Status: active"; then
-    echo -e "${RED}❌ Error configuring or launching ufw${NC}"
+    echo -e "${RED}❌ Error configuring or launching ufw.${NC}"
     exit 1
 fi
 rm -f /etc/fail2ban/jail.d/* 2>/dev/null
@@ -317,10 +310,10 @@ systemctl enable --now fail2ban
 systemctl restart fail2ban
 sleep 1
 if ! systemctl is-active --quiet fail2ban; then
-    echo -e "${RED}❌ Error configuring or launching fail2ban${NC}"
+    echo -e "${RED}❌ Error configuring or launching fail2ban.${NC}"
     exit 1
 fi
-echo -e "${GREEN}✓ Ufw and fail2ban successfully configured${NC}"
+echo -e "${GREEN}✓ Ufw and fail2ban successfully configured.${NC}"
 
 # Creating and adding a certificate for the 3X-UI panel
 echo -e "${BLUE}[8/11] Creating and adding a certificate for the 3X-UI panel...${NC}"
