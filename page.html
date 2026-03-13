@@ -255,6 +255,62 @@
             .btn-cta { padding: 12px 24px; }
             body { background-attachment: scroll, scroll, scroll; }
         }
+        /* === ДВА СТОЛБЦА (iOS / Android) === */
+        .platform-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-top: 16px;
+        }
+
+        .platform-column {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 20px 40px;
+            transition: var(--transition);
+        }
+
+        .platform-column:hover {
+            border-color: var(--primary-blue);
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
+        }
+
+        .platform-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border-color);
+            font-size: 1.1rem;
+            color: var(--text-main);
+        }
+
+        .platform-column p {
+            margin-bottom: 12px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .platform-column p:last-child {
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 768px) {
+            .platform-columns {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+            
+            .platform-column {
+                padding: 16px 20px;
+            }
+        }
+
+        .step-body ol {
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -344,10 +400,35 @@
                 </button>
                 <div id="content-4" class="step-content">
                     <div class="step-body">
-                        <p>1. Перейдите в <strong>настройки</strong> приложения.</p>
-                        <p>2. Найдите и перейдите в раздел «<strong>Правила трафика</strong>».</p>
-                        <p>3. Далее перейдите в раздел «<strong>Правила от сообщества</strong>».</p>
-                        <p>4. Выберите «<strong>.RU без VPN</strong>» и нажмите кнопку <strong>Применить</strong>.</p>
+                        <div class="platform-columns">
+                            <div class="platform-column">
+                                <div class="platform-header">
+                                    <strong>Android</strong>
+                                </div>
+                                <ol class="platform-steps">
+                                    <li>Перейдите в <strong>настройки</strong> приложения.</li>
+                                    <li>Найдите и перейдите в раздел «<strong>Маршрутизация</strong>».</li>
+                                    <li>Далее перейдите в раздел «<strong>Маршрутизация выбранных приложений</strong>».</li>
+                                    <li>Включите «<strong>Маршрутизация выбранных приложений</strong>».</li>
+                                    <li>Теперь <strong>найдите</strong> нужные вам <strong>приложения</strong> из списка или при помощи поиска и <strong>включите</strong> их.</li>
+                                    <li style="margin-bottom: 12px;">Затем вернитесь на <strong>главный</strong> экран приложения, выберите добавленный <strong>профиль</strong>, нажав на него, и <strong>включите</strong> VPN.</li>
+                                    <p><em>Если вам также нужно использовать сайты, которые не работают без VPN, то дополнительно выполните данный шаг инструкции для iOS.</em></p>
+                                </ol>
+                            </div>
+
+                            <div class="platform-column">
+                                <div class="platform-header">
+                                    <strong>iOS</strong>
+                                </div>
+                                <ol class="platform-steps">
+                                    <li>Перейдите в <strong>настройки</strong> приложения.</li>
+                                    <li>Найдите и перейдите в раздел «<strong>Правила трафика</strong>».</li>
+                                    <li>Далее перейдите в раздел «<strong>Правила от сообщества</strong>».</li>
+                                    <li>Выберите «<strong>.RU без VPN</strong>» и нажмите кнопку «<strong>Применить</strong>».</li>
+                                    <li>Затем вернитесь на <strong>главный</strong> экран приложения, выберите добавленный <strong>профиль</strong>, нажав на него, и <strong>включите</strong> VPN.</li>
+                                </ol>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </article>
